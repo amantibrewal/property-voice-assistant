@@ -1,0 +1,53 @@
+[project]
+name = "ivy-homes-voice-agent"
+version = "0.1.0"
+description = "A voice AI assistant for property inquiries at Ivy Homes"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "livekit-agents[silero,turn-detector]~=1.2",
+    "livekit-plugins-openai~=0.9",
+    "livekit-plugins-cartesia~=0.3",
+    "livekit-plugins-noise-cancellation~=0.2",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.4",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+    "ANN", # flake8-annotations
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear
+    "COM", # flake8-commas
+    "C4", # flake8-comprehensions
+]
+ignore = ["E501"]  # line too long (handled by formatter)
+
+[tool.ruff.format]
+quote-style = "double"
