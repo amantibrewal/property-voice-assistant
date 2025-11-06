@@ -14,11 +14,8 @@ from livekit.agents import (
     cli,
     llm,
     metrics,
-    stt,
-    tts,
-    turn_detector,
 )
-from livekit.plugins import cartesia, openai, noise_cancellation
+from livekit.plugins import cartesia, openai, noise_cancellation, turn_detector
 
 from .property_service import PropertyService
 
@@ -220,24 +217,7 @@ class IvyHomesAssistant(Agent):
         return assistant
 
 
-@agents.on_process_start
-async def on_process_start() -> None:
-    """Initialize the agent process."""
-    logger.info("Ivy Homes voice agent process started")
-
-
-@agents.on_job_request
-async def entrypoint(job_request: agents.JobRequest) -> None:
-    """Handle incoming job requests and manage agent lifecycle."""
-    logger.info("Processing new job request for room: %s", job_request.room.name)
-
-    await job_request.accept(
-        entrypoint=_job_entrypoint,
-        auto_subscribe=AutoSubscribe.AUDIO_ONLY,
-    )
-
-
-async def _job_entrypoint(job_context: JobContext) -> None:
+async def entrypoint(job_context: JobContext) -> None:
     """Main entry point for agent jobs."""
     logger.info("Agent joining room: %s", job_context.room.name)
 
@@ -245,7 +225,7 @@ async def _job_entrypoint(job_context: JobContext) -> None:
     assistant = IvyHomesAssistant.create_pipeline(job_context)
     assistant.start(job_context.room)
 
-    # Wait for the first participant to join
+    # Greet the user
     await assistant.say("Hello! Welcome to Ivy Homes. How can I help you today?")
 
     logger.info("Ivy Homes assistant started successfully")
