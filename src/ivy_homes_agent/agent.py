@@ -37,42 +37,50 @@ PROPERTY_SERVICE = PropertyService(
 
 
 # Property inquiry context for Ivy Homes
-AGENT_INSTRUCTIONS = """You are a friendly and professional voice assistant for Ivy Homes, a real estate company.
+AGENT_INSTRUCTIONS = """You are a friendly and professional voice assistant for Ivy Homes, a real estate company specializing in residential flats in Bangalore.
 
-Your role is to help potential buyers and renters with property inquiries. You have access to our live property inventory and can search for specific properties based on customer requirements.
+IMPORTANT: Ivy Homes ONLY sells residential flats (apartments) in Bangalore. We do NOT have:
+- Rental properties (we only sell)
+- Houses, villas, or independent homes
+- Commercial properties
+- Properties outside Bangalore
+
+Your role is to help potential buyers find and purchase flats in Bangalore. You have access to our live property inventory.
 
 You should:
 
 1. Greet callers warmly and identify yourself as the Ivy Homes assistant
-2. Ask what type of property they're looking for (house, apartment, condo, commercial, etc.)
-3. Gather key requirements:
-   - Location preferences (city, neighborhood)
-   - Budget range (min and max price)
-   - Number of bedrooms/bathrooms
-   - Property type
-   - Special features or requirements
+2. Clarify that we specialize in selling residential flats in Bangalore
+3. If they ask about rentals or other property types, politely explain we only sell flats
+4. Gather key requirements for flat purchase:
+   - Preferred area/neighborhood in Bangalore (e.g., Whitefield, Koramangala, HSR Layout, Indiranagar)
+   - Budget range in Indian Rupees (lakhs or crores)
+   - Number of BHK (1 BHK, 2 BHK, 3 BHK, 4 BHK)
+   - Special features (parking, amenities, floor preference, facing)
+   - Timeline for purchase
 
-4. **Use the search_properties function** to find matching properties when you have enough criteria
-   - You MUST call this function when the user asks about available properties
+5. **Use the search_properties function** to find matching flats when you have enough criteria
+   - You MUST call this function when the buyer asks about available flats
    - Share the results naturally in conversation
-   - If you find properties, describe them enthusiastically with details
-   - If no properties match, suggest adjusting their criteria
+   - Describe flats enthusiastically with details about location, amenities, and features
+   - If no flats match, suggest adjusting their budget or location preferences
 
-5. **Use get_property_details function** when they ask about a specific property
+6. **Use get_property_details function** when they ask about a specific flat
 
-6. After sharing properties:
-   - Ask if they'd like more details
-   - Offer to schedule a viewing
-   - Ask if they want to see other options
+7. After sharing flats:
+   - Ask if they'd like more details about any specific flat
+   - Offer to schedule a site visit/viewing
+   - Ask if they want to see other options in different areas or budget ranges
+   - Mention amenities and nearby facilities (metro stations, schools, hospitals, tech parks)
 
-7. For questions you cannot answer or to schedule viewings:
+8. For scheduling site visits or detailed discussions:
    - Offer to connect them with a property specialist
-   - Collect their contact information (name, phone, email)
+   - Collect their contact information (name, phone number, email)
 
-Keep responses concise and natural for voice conversation. Avoid complex formatting, bullet points, or long paragraphs.
-Be empathetic and patient, especially with first-time buyers or renters.
+Keep responses concise and natural for voice conversation. Use Indian English and terminology (flat, lakhs, crores, BHK).
+Be empathetic and patient, especially with first-time home buyers.
 
-When you find properties, be excited and descriptive! Make them sound appealing while being accurate."""
+When you find flats, be excited and descriptive! Highlight Bangalore-specific benefits like proximity to tech parks, metro connectivity, and amenities."""
 
 
 class IvyHomesAssistant(Agent):
@@ -83,35 +91,35 @@ class IvyHomesAssistant(Agent):
         """Create the voice pipeline for the agent."""
         logger.info("Creating Ivy Homes assistant pipeline")
 
-        # Define function for searching properties
-        @llm.ai_callable(description="Search for properties in the inventory based on criteria")
+        # Define function for searching flats
+        @llm.ai_callable(description="Search for residential flats for sale in Bangalore based on buyer criteria")
         async def search_properties(
             location: Annotated[
                 str | None,
-                llm.TypeInfo(description="City, neighborhood, or area to search in")
+                llm.TypeInfo(description="Neighborhood or area in Bangalore (e.g., Whitefield, Koramangala, HSR Layout, Indiranagar, Electronic City)")
             ] = None,
             property_type: Annotated[
                 str | None,
-                llm.TypeInfo(description="Type of property: house, apartment, condo, or commercial")
+                llm.TypeInfo(description="Always 'apartment' or 'flat' - we only sell residential flats")
             ] = None,
             min_price: Annotated[
                 float | None,
-                llm.TypeInfo(description="Minimum price in dollars")
+                llm.TypeInfo(description="Minimum price in Indian Rupees")
             ] = None,
             max_price: Annotated[
                 float | None,
-                llm.TypeInfo(description="Maximum price in dollars")
+                llm.TypeInfo(description="Maximum price in Indian Rupees")
             ] = None,
             bedrooms: Annotated[
                 int | None,
-                llm.TypeInfo(description="Number of bedrooms required")
+                llm.TypeInfo(description="Number of bedrooms/BHK required (1, 2, 3, or 4)")
             ] = None,
             bathrooms: Annotated[
                 int | None,
                 llm.TypeInfo(description="Number of bathrooms required")
             ] = None,
         ) -> str:
-            """Search for properties matching the criteria."""
+            """Search for flats matching the buyer's criteria."""
             logger.info("Function called: search_properties")
 
             properties = await PROPERTY_SERVICE.search_properties(
@@ -126,31 +134,38 @@ class IvyHomesAssistant(Agent):
 
             return PROPERTY_SERVICE.format_property_summary(properties)
 
-        # Define function for getting property details
-        @llm.ai_callable(description="Get detailed information about a specific property")
+        # Define function for getting flat details
+        @llm.ai_callable(description="Get detailed information about a specific flat for sale")
         async def get_property_details(
             property_id: Annotated[
                 str,
-                llm.TypeInfo(description="The unique ID of the property")
+                llm.TypeInfo(description="The unique ID of the flat")
             ],
         ) -> str:
-            """Get details about a specific property."""
+            """Get details about a specific flat."""
             logger.info(f"Function called: get_property_details({property_id})")
 
             prop = await PROPERTY_SERVICE.get_property_details(property_id)
 
             if not prop:
-                return f"I couldn't find a property with ID {property_id}."
+                return f"I couldn't find a flat with ID {property_id}."
+
+            # Format price in Indian Rupees (lakhs/crores)
+            price = prop.get('price', 0)
+            if price >= 10000000:  # 1 crore or more
+                price_str = f"₹{price / 10000000:.2f} crores"
+            else:
+                price_str = f"₹{price / 100000:.2f} lakhs"
 
             return (
-                f"Here are the details for this property: "
-                f"It's a {prop.get('bedrooms', 0)}-bedroom, {prop.get('bathrooms', 0)}-bathroom "
-                f"{prop.get('type', 'property')} located at {prop.get('address', 'the address')} "
-                f"in {prop.get('neighborhood', '')}, {prop.get('city', '')}. "
-                f"The price is ${prop.get('price', 0):,.0f}. "
-                f"It has {prop.get('square_feet', 0)} square feet. "
+                f"Here are the details for this flat: "
+                f"It's a {prop.get('bedrooms', 0)}-BHK flat with {prop.get('bathrooms', 0)} bathrooms, "
+                f"located in {prop.get('neighborhood', '')}, {prop.get('city', 'Bangalore')}. "
+                f"The address is {prop.get('address', 'available on request')}. "
+                f"The price is {price_str}. "
+                f"It has {prop.get('square_feet', 0)} square feet of space. "
                 f"{prop.get('description', '')} "
-                f"Built in {prop.get('year_built', 'unknown')}. "
+                f"Built in {prop.get('year_built', 'recent year')}. "
             )
 
         # Initialize the language model with property context

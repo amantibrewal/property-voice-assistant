@@ -1,12 +1,17 @@
 # Ivy Homes Voice Assistant
 
-A real-time AI voice assistant for property inquiries, built with LiveKit Agents framework. This assistant helps potential buyers and renters with property searches, scheduling viewings, and connecting with property specialists.
+A real-time AI voice assistant for residential flat sales in Bangalore, built with LiveKit Agents framework. This assistant helps potential buyers find and purchase flats, schedule site visits, and connect with property specialists.
+
+**Business Focus**: Ivy Homes exclusively sells residential flats (apartments) in Bangalore. We do not handle rentals, houses, villas, or commercial properties.
 
 ## Features
 
 - **Real-time Voice Conversations**: Natural, conversational AI powered by OpenAI GPT-4
-- **Property Inquiry Handling**: Specialized prompts for real estate inquiries
+- **Bangalore-Specific**: Specialized for Bangalore neighborhoods, tech parks, and metro connectivity
+- **Live Inventory Search**: Query real flat availability with pricing in Indian Rupees (lakhs/crores)
+- **BHK-based Search**: Search by 1 BHK, 2 BHK, 3 BHK, or 4 BHK configurations
 - **Multi-platform Support**: Web browser, mobile apps, or telephone integration
+- **Indian English**: Uses local terminology (flat, BHK, lakhs, crores, site visit)
 - **High-Quality Audio**: Professional text-to-speech with Cartesia
 - **Noise Cancellation**: Built-in audio enhancement for clear conversations
 - **Easy Deployment**: Docker support and cloud-ready architecture
@@ -194,29 +199,31 @@ For direct database access:
 
 ### How the Agent Uses Property Data
 
-When a caller asks about properties, the agent:
+When a buyer asks about flats, the agent:
 
 1. **Gathers requirements** through conversation:
-   - Location preference
-   - Price range
-   - Number of bedrooms/bathrooms
-   - Property type
+   - Preferred area/neighborhood in Bangalore
+   - Budget range in Indian Rupees
+   - Number of BHK (bedrooms)
+   - Special requirements (parking, amenities, floor, facing)
 
 2. **Searches your inventory** using the `search_properties()` function
 
 3. **Presents results** naturally in voice format:
-   - "I found 3 properties that match. The first is a 3-bedroom house in Downtown for $1.2 million..."
+   - "I found 3 flats that match. The first is a 3-BHK in Whitefield for ₹1.85 crores with excellent amenities..."
 
-4. **Provides details** when asked about specific properties
+4. **Provides details** when asked about specific flats, including pricing in lakhs/crores
 
 ### Testing with Sample Data
 
-The project includes 8 sample properties in `data/properties.json`. Try these queries:
+The project includes 10 sample flats in `data/properties.json` covering popular Bangalore areas. Try these queries:
 
-- "Show me 3-bedroom houses in San Francisco"
-- "What do you have under $800,000?"
-- "I need a 2-bedroom apartment in the Mission District"
-- "Show me condos with bay views"
+- "Show me 3 BHK flats in Whitefield"
+- "What do you have under 1 crore?"
+- "I need a 2 BHK apartment in Electronic City"
+- "Show me flats near Bellandur with good amenities"
+- "I'm looking for a flat with 80 lakhs budget"
+- "What's available in HSR Layout?"
 
 ## Usage
 
@@ -226,10 +233,11 @@ The project includes 8 sample properties in `data/properties.json`. Try these qu
 2. Click "Start Voice Chat" to connect
 3. Allow microphone access when prompted
 4. Start speaking! Try asking:
-   - "I'm looking for a 3-bedroom house in downtown"
-   - "What properties do you have available?"
-   - "Can you schedule a viewing for me?"
-   - "I need help finding an apartment"
+   - "I'm looking for a 3 BHK flat in Whitefield"
+   - "What flats do you have under 1.5 crores?"
+   - "Can you schedule a site visit for me?"
+   - "I need a 2 BHK in Electronic City"
+   - "Show me flats with good amenities in Bellandur"
 
 ### Customizing the Agent
 

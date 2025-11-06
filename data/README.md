@@ -1,6 +1,8 @@
-# Property Data
+# Property Data for Ivy Homes
 
-This directory contains property inventory data that the voice agent uses to answer inquiries.
+This directory contains property inventory data for residential flats in Bangalore that the voice agent uses to answer buyer inquiries.
+
+**Important**: Ivy Homes only sells residential flats/apartments in Bangalore. We do not deal with rentals, houses, villas, or commercial properties.
 
 ## Format
 
@@ -10,22 +12,22 @@ The `properties.json` file should follow this structure:
 {
   "properties": [
     {
-      "id": "unique-property-id",
-      "type": "house|apartment|condo|commercial",
-      "address": "Street address",
-      "neighborhood": "Neighborhood name",
-      "city": "City name",
-      "state": "State code",
-      "zip": "Postal code",
-      "price": 1000000,
-      "bedrooms": 3,
+      "id": "BLR-001",
+      "type": "apartment",
+      "address": "Complex name and street address",
+      "neighborhood": "Area name (e.g., Whitefield, Koramangala, HSR Layout)",
+      "city": "Bangalore",
+      "state": "Karnataka",
+      "zip": "560XXX",
+      "price": 12500000,
+      "bedrooms": 2,
       "bathrooms": 2,
-      "square_feet": 2000,
-      "year_built": 2020,
-      "description": "Detailed property description",
-      "features": ["feature1", "feature2"],
-      "status": "available|pending|sold",
-      "listing_date": "YYYY-MM-DD"
+      "square_feet": 1250,
+      "year_built": 2021,
+      "description": "Detailed flat description with amenities and location benefits",
+      "features": ["clubhouse", "gym", "swimming pool", "parking"],
+      "status": "available",
+      "listing_date": "2024-02-01"
     }
   ]
 }
@@ -33,16 +35,31 @@ The `properties.json` file should follow this structure:
 
 ## Required Fields
 
-- `id`: Unique identifier for the property
-- `type`: Property type (house, apartment, condo, commercial)
-- `city`: City where property is located
-- `price`: Listing price in dollars
-- `bedrooms`: Number of bedrooms
+- `id`: Unique identifier for the flat (recommend format: BLR-XXX)
+- `type`: Always "apartment" (we only sell flats)
+- `neighborhood`: Area/locality in Bangalore
+- `city`: Always "Bangalore"
+- `price`: Price in Indian Rupees (e.g., 12500000 for ₹1.25 crores)
+- `bedrooms`: Number of BHK (1, 2, 3, or 4)
 - `bathrooms`: Number of bathrooms
 
-## Optional Fields
+## Optional but Recommended Fields
 
-All other fields are optional but recommended for better search results and descriptions.
+- `address`: Full address including complex/society name
+- `square_feet`: Carpet/super built-up area
+- `year_built`: Construction year
+- `description`: Detailed description highlighting amenities and connectivity
+- `features`: Array of amenities (clubhouse, gym, parking, security, etc.)
+- `status`: "available", "pending", or "sold"
+
+## Pricing Guidelines
+
+Prices should be in Indian Rupees:
+- 1 lakh = 100,000 (₹1,00,000)
+- 1 crore = 10,000,000 (₹1,00,00,000)
+- Example: A flat priced at ₹85 lakhs should be entered as 8500000
+
+The agent will automatically convert these to lakhs/crores when speaking.
 
 ## Updating Data
 
@@ -73,4 +90,15 @@ For production use with a database:
 
 ## Sample Data
 
-The included `properties.json` contains 8 sample properties in San Francisco. Replace this with your actual inventory data.
+The included `properties.json` contains 10 sample flats across popular Bangalore neighborhoods including:
+- Whitefield (IT corridor)
+- HSR Layout (prime residential)
+- Electronic City (tech hub)
+- Bellandur (IT corridor)
+- Marathahalli (central location)
+- Kanakapura Road (emerging area)
+
+Price range: ₹75 lakhs to ₹2.5 crores
+BHK range: 1 BHK to 4 BHK
+
+Replace this with your actual Ivy Homes inventory data.
