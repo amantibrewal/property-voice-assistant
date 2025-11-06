@@ -105,6 +105,119 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser and click "Start Voice Chat" to begin!
 
+## Integrating Your Property Data
+
+The voice agent can query your live property inventory to provide accurate information to callers. There are three ways to integrate your data:
+
+### Option 1: File-Based (Quick Start)
+
+Perfect for testing and small inventories. Simply edit `data/properties.json`:
+
+```json
+{
+  "properties": [
+    {
+      "id": "prop-001",
+      "type": "house",
+      "address": "123 Oak Street",
+      "neighborhood": "Downtown",
+      "city": "San Francisco",
+      "price": 1250000,
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "square_feet": 2100,
+      "year_built": 2018,
+      "description": "Beautiful modern home...",
+      "features": ["hardwood floors", "updated kitchen"],
+      "status": "available"
+    }
+  ]
+}
+```
+
+**Setup**:
+1. Edit `data/properties.json` with your properties
+2. Restart the agent
+3. The agent will automatically load the new data
+
+See `data/README.md` for complete field documentation.
+
+### Option 2: API Integration (Production)
+
+Connect to your existing property management system API:
+
+1. **Update environment variables** in `.env`:
+   ```env
+   PROPERTY_DATA_SOURCE=api
+   PROPERTY_API_URL=https://your-api.com/properties
+   PROPERTY_API_KEY=your-api-key
+   ```
+
+2. **Implement the API client** in `src/ivy_homes_agent/property_service.py`:
+   ```python
+   async def _search_api(self, location, property_type, ...):
+       import aiohttp
+       params = {
+           "location": location,
+           "type": property_type,
+           "min_price": min_price,
+           "max_price": max_price,
+           # ... other parameters
+       }
+       headers = {"Authorization": f"Bearer {self.api_key}"}
+       async with aiohttp.ClientSession() as session:
+           async with session.get(self.api_url, params=params, headers=headers) as resp:
+               data = await resp.json()
+               return data.get("properties", [])
+   ```
+
+3. **Map your API response** to the expected format (id, type, address, price, etc.)
+
+### Option 3: Database Integration (Enterprise)
+
+For direct database access:
+
+1. **Install database driver**:
+   ```bash
+   pip install asyncpg  # for PostgreSQL
+   # or
+   pip install aiomysql  # for MySQL
+   ```
+
+2. **Update `.env`**:
+   ```env
+   PROPERTY_DATA_SOURCE=database
+   DATABASE_URL=postgresql://user:pass@host:5432/dbname
+   ```
+
+3. **Implement database queries** in `property_service.py`
+
+### How the Agent Uses Property Data
+
+When a caller asks about properties, the agent:
+
+1. **Gathers requirements** through conversation:
+   - Location preference
+   - Price range
+   - Number of bedrooms/bathrooms
+   - Property type
+
+2. **Searches your inventory** using the `search_properties()` function
+
+3. **Presents results** naturally in voice format:
+   - "I found 3 properties that match. The first is a 3-bedroom house in Downtown for $1.2 million..."
+
+4. **Provides details** when asked about specific properties
+
+### Testing with Sample Data
+
+The project includes 8 sample properties in `data/properties.json`. Try these queries:
+
+- "Show me 3-bedroom houses in San Francisco"
+- "What do you have under $800,000?"
+- "I need a 2-bedroom apartment in the Mission District"
+- "Show me condos with bay views"
+
 ## Usage
 
 ### Testing the Agent
@@ -147,7 +260,11 @@ property-voice-assistant/
 ├── src/
 │   └── ivy_homes_agent/
 │       ├── __init__.py
-│       └── agent.py           # Main voice agent logic
+│       ├── agent.py              # Main voice agent logic
+│       └── property_service.py   # Property data service
+├── data/
+│   ├── properties.json           # Property inventory data
+│   └── README.md                 # Data format documentation
 ├── frontend/
 │   ├── src/
 │   │   └── app/
@@ -213,24 +330,25 @@ LiveKit supports SIP integration for phone calls. To enable:
 
 See [LiveKit telephony docs](https://docs.livekit.io/agents/start/telephony/) for details.
 
-### Custom Property Data Integration
+### Extending with Custom Functions
 
-To connect real property data:
+You can add more capabilities to the agent by registering additional AI-callable functions:
 
-1. Add a function in `agent.py` to query your property database
-2. Register it as a tool the LLM can call
-3. Update agent instructions to use the tool
-
-Example:
 ```python
-@agent.function()
-async def search_properties(
-    location: str,
-    bedrooms: int,
-    max_price: float
-) -> list:
-    # Query your property database
-    return properties
+@llm.ai_callable(description="Schedule a property viewing")
+async def schedule_viewing(
+    property_id: str,
+    date: str,
+    time: str,
+    contact_email: str,
+) -> str:
+    # Add to your calendar/CRM system
+    return f"Viewing scheduled for {date} at {time}"
+```
+
+Then register it with the agent:
+```python
+assistant.fnc_ctx.ai_callable(schedule_viewing)
 ```
 
 ## Troubleshooting
