@@ -8,17 +8,14 @@ from dotenv import load_dotenv
 from livekit import agents, rtc
 from livekit.agents import (
     Agent,
+    AgentSession,
     AutoSubscribe,
     JobContext,
     WorkerOptions,
     cli,
     llm,
-    metrics,
-    stt,
-    tts,
-    turn_detector,
 )
-from livekit.plugins import cartesia, openai, noise_cancellation
+from livekit.plugins import openai, silero
 
 from .property_service import PropertyService
 
@@ -92,31 +89,31 @@ class IvyHomesAssistant(Agent):
         logger.info("Creating Ivy Homes assistant pipeline")
 
         # Define function for searching flats
-        @llm.ai_callable(description="Search for residential flats for sale in Bangalore based on buyer criteria")
+        @llm.function_tool(description="Search for residential flats for sale in Bangalore based on buyer criteria")
         async def search_properties(
             location: Annotated[
                 str | None,
-                llm.TypeInfo(description="Neighborhood or area in Bangalore (e.g., Whitefield, Koramangala, HSR Layout, Indiranagar, Electronic City)")
+                "Neighborhood or area in Bangalore (e.g., Whitefield, Koramangala, HSR Layout, Indiranagar, Electronic City)"
             ] = None,
             property_type: Annotated[
                 str | None,
-                llm.TypeInfo(description="Always 'apartment' or 'flat' - we only sell residential flats")
+                "Always 'apartment' or 'flat' - we only sell residential flats"
             ] = None,
             min_price: Annotated[
                 float | None,
-                llm.TypeInfo(description="Minimum price in Indian Rupees")
+                "Minimum price in Indian Rupees"
             ] = None,
             max_price: Annotated[
                 float | None,
-                llm.TypeInfo(description="Maximum price in Indian Rupees")
+                "Maximum price in Indian Rupees"
             ] = None,
             bedrooms: Annotated[
                 int | None,
-                llm.TypeInfo(description="Number of bedrooms/BHK required (1, 2, 3, or 4)")
+                "Number of bedrooms/BHK required (1, 2, 3, or 4)"
             ] = None,
             bathrooms: Annotated[
                 int | None,
-                llm.TypeInfo(description="Number of bathrooms required")
+                "Number of bathrooms required"
             ] = None,
         ) -> str:
             """Search for flats matching the buyer's criteria."""
@@ -135,11 +132,11 @@ class IvyHomesAssistant(Agent):
             return PROPERTY_SERVICE.format_property_summary(properties)
 
         # Define function for getting flat details
-        @llm.ai_callable(description="Get detailed information about a specific flat for sale")
+        @llm.function_tool(description="Get detailed information about a specific flat for sale")
         async def get_property_details(
             property_id: Annotated[
                 str,
-                llm.TypeInfo(description="The unique ID of the flat")
+                "The unique ID of the flat"
             ],
         ) -> str:
             """Get details about a specific flat."""
@@ -168,85 +165,39 @@ class IvyHomesAssistant(Agent):
                 f"Built in {prop.get('year_built', 'recent year')}. "
             )
 
-        # Initialize the language model with property context
-        language_model = openai.LLM(
-            model="gpt-4o-mini",
-            temperature=0.7,  # Slightly creative but focused
-        )
-
-        # Speech-to-text using OpenAI Whisper
-        speech_to_text = openai.STT(
-            model="whisper-1",
-        )
-
-        # Text-to-speech using Cartesia for natural voice
-        text_to_speech = cartesia.TTS(
-            model="sonic-3-english",
-            voice="79a125e8-cd45-4c2e-bb9c-42b5d0a1804f",  # Friendly, professional voice
-            encoding="pcm_s16le",
-            sample_rate=24000,
-        )
-
-        # Configure turn detection for natural conversation flow
-        turn_detection = turn_detector.EOUModel()
-
-        # Create the assistant pipeline with function calling
+        # Create the assistant with function calling
         assistant = cls(
             instructions=AGENT_INSTRUCTIONS,
-            llm=language_model,
-            stt=speech_to_text,
-            tts=text_to_speech,
-            turn_detector=turn_detection,
-            will_synthesize_assistant_reply=turn_detector.PredictionHint.LIKELY,
-            preemptive_synthesis=True,  # Start generating response while user speaks
-            min_endpointing_delay=0.5,  # Wait 0.5s after user stops speaking
-            fnc_ctx=llm.FunctionContext(),  # Enable function calling
+            tools=[search_properties, get_property_details],
         )
-
-        # Register the property search functions
-        assistant.fnc_ctx.ai_callable(search_properties)
-        assistant.fnc_ctx.ai_callable(get_property_details)
-
-        # Add noise cancellation for better audio quality
-        assistant.add_filter(
-            noise_cancellation.BVC(
-                aggressiveness=noise_cancellation.BVCAggressiveness.MEDIUM,
-            )
-        )
-
-        # Track metrics
-        assistant.add_filter(metrics.PipelineMetrics())
 
         return assistant
 
 
-@agents.on_process_start
-async def on_process_start() -> None:
-    """Initialize the agent process."""
-    logger.info("Ivy Homes voice agent process started")
-
-
-@agents.on_job_request
-async def entrypoint(job_request: agents.JobRequest) -> None:
+async def entrypoint(job_context: JobContext) -> None:
     """Handle incoming job requests and manage agent lifecycle."""
-    logger.info("Processing new job request for room: %s", job_request.room.name)
-
-    await job_request.accept(
-        entrypoint=_job_entrypoint,
-        auto_subscribe=AutoSubscribe.AUDIO_ONLY,
-    )
-
-
-async def _job_entrypoint(job_context: JobContext) -> None:
-    """Main entry point for agent jobs."""
     logger.info("Agent joining room: %s", job_context.room.name)
 
-    # Create and start the assistant
-    assistant = IvyHomesAssistant.create_pipeline(job_context)
-    assistant.start(job_context.room)
+    # Connect to the room
+    await job_context.connect()
 
-    # Wait for the first participant to join
-    await assistant.say("Hello! Welcome to Ivy Homes. How can I help you today?")
+    # Create the assistant
+    assistant = IvyHomesAssistant.create_pipeline(job_context)
+
+    # Create and start the agent session
+    session = AgentSession(
+        vad=silero.VAD.load(),
+        stt=openai.STT(model="whisper-1"),
+        llm=openai.LLM(model="gpt-4o-mini", temperature=0.7),
+        tts=openai.TTS(voice="alloy"),
+    )
+
+    await session.start(agent=assistant, room=job_context.room)
+
+    # Generate initial greeting
+    await session.generate_reply(
+        instructions="Greet the caller warmly and introduce yourself as the Ivy Homes assistant."
+    )
 
     logger.info("Ivy Homes assistant started successfully")
 

@@ -124,28 +124,34 @@ class PropertyService:
                     prop.get("address", "").lower()
                 )
                 if location.lower() not in prop_location:
+                    print('Here could be location issue')
                     continue
 
             # Filter by property type
             if property_type:
                 if prop.get("type", "").lower() != property_type.lower():
+                    print('Here could be property type issue')
                     continue
 
             # Filter by price range
             price = prop.get("price", 0)
             if min_price and price < min_price:
+                print('Here could be min price issue')
                 continue
             if max_price and price > max_price:
+                print('Here could be max price issue')
                 continue
 
             # Filter by bedrooms
             if bedrooms:
                 if prop.get("bedrooms") != bedrooms:
+                    print('Here could be bedrooms issue')
                     continue
 
             # Filter by bathrooms
             if bathrooms:
                 if prop.get("bathrooms") != bathrooms:
+                    print('Here could be bathrooms issue')
                     continue
 
             results.append(prop)

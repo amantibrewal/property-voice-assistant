@@ -1,8 +1,10 @@
 # Main dependencies
-livekit-agents[silero,turn-detector]~=1.2
-livekit-plugins-openai~=0.9
-livekit-plugins-cartesia~=0.3
-livekit-plugins-noise-cancellation~=0.2
+livekit-agents>=1.2.18
+livekit-plugins-openai>=1.2.0
+livekit-plugins-cartesia>=0.4.0
+livekit-plugins-noise-cancellation>=0.2.0
+livekit-plugins-silero>=1.2.0
+livekit-plugins-turn-detector>=1.2.0
 python-dotenv
 
 # Development dependencies
